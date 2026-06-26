@@ -42,12 +42,38 @@ class ShowArticle(Resource):
         if session['page_views'] <= 3:
 
             article = Article.query.filter(Article.id == id).first()
-            article_json = ArticlesSchema.dump(article)
+            article_json = ArticlesSchema().dump(article)
 
             return make_response(article_json, 200)
 
         return {'message': 'Maximum pageview limit reached'}, 401
+    
+class Login(Resource):
+    def post(self):
+        user = User.query.filter(User.username == request.get_json()['username']).first()
+        if user:
+            session['user_id'] = user.id
+            return UserSchema().dump(user), 200
 
+class Logout(Resource):
+    def delete(self):
+        session['user_id'] = None
+        return None, 204
+        
+class CheckSession(Resource):
+    def get(self):
+        user_id = session.get('user_id')
+
+        if user_id:
+            user = User.query.get(user_id)
+            return UserSchema().dump(user), 200
+        else:
+            return {}, 401
+
+
+api.add_resource(CheckSession, '/check_session')
+api.add_resource(Logout, '/logout')
+api.add_resource(Login, '/login')
 api.add_resource(ClearSession, '/clear')
 api.add_resource(IndexArticle, '/articles')
 api.add_resource(ShowArticle, '/articles/<int:id>')
